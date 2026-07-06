@@ -13,5 +13,11 @@ build/
 dist/
 wheelhouse/
 
+# Native library bundled into the package at build time
+python/zpds/libzpds.*
+python/zpds/*.so
+python/zpds/*.dylib
+python/zpds/*.dll
+
 # OS
 .DS_Store

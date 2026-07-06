@@ -1,0 +1,52 @@
+name: wheels
+
+# Build binary wheels for Linux (manylinux), macOS and Windows with
+# cibuildwheel. Because zpds bundles a prebuilt Zig library and uses cffi's
+# dlopen bindings (no CPython ABI), each platform yields a single
+# py3-none-<platform> wheel — see [tool.cibuildwheel] in pyproject.toml.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "pyproject.toml"
+      - "setup.py"
+      - ".github/workflows/wheels.yml"
+
+jobs:
+  build_wheels:
+    name: wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21
+        # All configuration (Zig install, single-interpreter build, import
+        # test) lives in [tool.cibuildwheel] in pyproject.toml.
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pipx run build --sdist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: ./dist/*.tar.gz

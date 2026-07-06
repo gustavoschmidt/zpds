@@ -1,0 +1,5 @@
+# Ship the Zig sources so the wheel can be compiled from an sdist.
+include build.zig build.zig.zon README.md LICENSE
+recursive-include src *.zig
+recursive-include include *.h
+recursive-include python/zpds *.py

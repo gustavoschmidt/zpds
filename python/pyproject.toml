@@ -1,31 +1,6 @@
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "zpds"
-version = "0.1.0"
-description = "Fast probabilistic data structures (Bloom, Cuckoo, HyperLogLog, Count-Min) backed by a native Zig core"
-readme = "README.md"
-requires-python = ">=3.9"
-license = { text = "MIT" }
-authors = [{ name = "zpds contributors" }]
-keywords = ["bloom-filter", "cuckoo-filter", "hyperloglog", "count-min-sketch", "probabilistic", "zig"]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Zig",
-    "Topic :: Scientific/Engineering",
-    "License :: OSI Approved :: MIT License",
-]
-dependencies = ["cffi>=1.15"]
-
-[project.urls]
-Homepage = "https://github.com/zpds/zpds"
-
-[tool.setuptools]
-packages = ["zpds"]
-# The native library is bundled next to the package inside built wheels.
-package-data = { zpds = ["*.so", "*.dylib", "*.dll"] }
+# Dev-only config for running the test suite from this directory.
+# The authoritative packaging metadata lives in the repository-root
+# pyproject.toml (which also drives wheel builds via setup.py + cibuildwheel).
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

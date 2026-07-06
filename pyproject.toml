@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zpds"
+version = "0.1.0"
+description = "Fast probabilistic data structures (Bloom, Cuckoo, HyperLogLog, Count-Min) backed by a native Zig core"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "zpds contributors" }]
+keywords = ["bloom-filter", "cuckoo-filter", "hyperloglog", "count-min-sketch", "probabilistic", "zig"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Zig",
+    "Topic :: Scientific/Engineering",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = ["cffi>=1.15"]
+
+[project.urls]
+Homepage = "https://github.com/zpds/zpds"
+
+[tool.setuptools]
+# The Python package lives under python/; the native library is compiled by
+# setup.py (BuildWithZig) and bundled next to it as package data.
+packages = ["zpds"]
+package-dir = { zpds = "python/zpds" }
+package-data = { zpds = ["*.so", "*.dylib", "*.dll"] }
+include-package-data = true
+
+# --- cibuildwheel ---------------------------------------------------------
+#
+# The wheel is py3-none-<platform> (no CPython ABI is used — the bindings are
+# cffi/dlopen), so we only need ONE build per platform, not one per Python
+# version. We pin to a single interpreter and install the Zig toolchain via the
+# `ziglang` PyPI package before building.
+[tool.cibuildwheel]
+build = "cp312-*"
+build-frontend = "build"
+before-all = "pip install ziglang==0.16.0"
+# Native core has no third-party runtime deps, so a quick import is enough.
+test-command = "python -c \"import zpds; print(zpds.native_version())\""
+
+[tool.cibuildwheel.linux]
+# Run the toolchain install inside the manylinux container too.
+before-all = "pip install ziglang==0.16.0"
+
+[tool.cibuildwheel.macos]
+archs = ["arm64", "x86_64"]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]
