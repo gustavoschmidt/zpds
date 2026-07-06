@@ -56,11 +56,16 @@ before-all = "pip install ziglang==0.16.0"
 test-command = "python -c \"import zpds; print(zpds.native_version())\""
 
 [tool.cibuildwheel.linux]
-# Run the toolchain install inside the manylinux container too.
+# Run the toolchain install inside the manylinux container too. Zig's build
+# runner does not compile on 32-bit x86 hosts, so no i686 wheels.
 before-all = "pip install ziglang==0.16.0"
+archs = ["x86_64"]
 
 [tool.cibuildwheel.macos]
 archs = ["arm64", "x86_64"]
+# Zig 0.16 emits dylibs with a minimum OS of macOS 13.0; delocate validates
+# the wheel against this target (its 10.13 default would fail the repair).
+environment = { MACOSX_DEPLOYMENT_TARGET = "13.0" }
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]

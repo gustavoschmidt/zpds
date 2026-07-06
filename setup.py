@@ -73,7 +73,10 @@ def _build_native() -> Path:
         cmd.append(f"-Dtarget={target}")
     print("zpds: building native core:", " ".join(cmd))
     subprocess.check_call(cmd, cwd=ROOT)
-    lib = ROOT / "zig-out" / "lib" / _lib_filename()
+    # Zig installs DLLs to zig-out/bin on Windows (zig-out/lib holds the
+    # import library); shared libraries land in zig-out/lib elsewhere.
+    out_dir = "bin" if sys.platform == "win32" else "lib"
+    lib = ROOT / "zig-out" / out_dir / _lib_filename()
     if not lib.is_file():
         raise SystemExit(f"zpds: expected native library at {lib} but it is missing")
     return lib
