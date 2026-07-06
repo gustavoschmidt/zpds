@@ -19,6 +19,7 @@ from pathlib import Path
 
 from setuptools import setup
 from setuptools.command.build_py import build_py
+from setuptools.dist import Distribution
 
 ROOT = Path(__file__).resolve().parent
 PKG_DIR = ROOT / "python" / "zpds"
@@ -92,6 +93,20 @@ class BuildWithZig(build_py):
         shutil.copy2(lib, staged / lib.name)
 
 
+class BinaryDistribution(Distribution):
+    """Mark the distribution as platform-specific.
+
+    zpds ships a prebuilt shared library rather than a CPython ``Extension``,
+    so setuptools would otherwise treat every file as *purelib* and stage the
+    library under ``<name>.data/purelib/`` in the wheel — which ``auditwheel``
+    rejects ("shared library in purelib folder"). Reporting ext modules routes
+    the package (and the bundled ``libzpds``) to the platlib root instead.
+    """
+
+    def has_ext_modules(self) -> bool:  # noqa: D401 - simple override
+        return True
+
+
 def _wheel_cmdclass() -> dict:
     """A bdist_wheel that marks the wheel impure and Python-ABI-agnostic."""
     try:  # setuptools >= 70 vendors bdist_wheel
@@ -111,4 +126,7 @@ def _wheel_cmdclass() -> dict:
     return {"bdist_wheel": BDistWheel}
 
 
-setup(cmdclass={"build_py": BuildWithZig, **_wheel_cmdclass()})
+setup(
+    distclass=BinaryDistribution,
+    cmdclass={"build_py": BuildWithZig, **_wheel_cmdclass()},
+)
