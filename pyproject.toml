@@ -19,6 +19,12 @@ classifiers = [
 ]
 dependencies = ["cffi>=1.15"]
 
+[project.optional-dependencies]
+# numpy is optional: it unlocks the zero-copy batch fast path but is not
+# required for the pure-iterable batch API.
+numpy = ["numpy>=1.20"]
+test = ["pytest>=7", "numpy>=1.20"]
+
 [project.urls]
 Homepage = "https://github.com/zpds/zpds"
 

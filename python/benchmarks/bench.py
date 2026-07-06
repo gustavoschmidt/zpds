@@ -76,9 +76,36 @@ def bench_countmin(keys: list[bytes]) -> list[Result]:
     return out
 
 
+def bench_batch(keys: list[bytes]) -> list[Result]:
+    """Single-item vs batch vs zero-copy numpy `add`, to expose FFI overhead."""
+    n = len(keys)
+    out: list[Result] = []
+
+    z = zpds.BloomFilter(capacity=n, error_rate=0.01)
+    out.append(Result("single-item add", "add", _time(lambda: [z.add(k) for k in keys], n)))
+
+    z2 = zpds.BloomFilter(capacity=n, error_rate=0.01)
+    out.append(Result("add_many(list)", "add", _time(lambda: z2.add_many(keys), n)))
+
+    try:
+        import numpy as np
+
+        np_keys = np.arange(n, dtype=np.uint64)
+        z3 = zpds.BloomFilter(capacity=n, error_rate=0.01)
+        out.append(Result("add_many(numpy)", "add", _time(lambda: z3.add_many(np_keys), n)))
+    except ImportError:
+        pass
+    return out
+
+
 def run(n: int) -> list[list[Result]]:
     keys = [f"item-{i}".encode() for i in range(n)]
     return [bench_bloom(keys), bench_hll(keys), bench_countmin(keys)]
+
+
+def run_batch(n: int) -> list[Result]:
+    keys = [f"item-{i}".encode() for i in range(n)]
+    return bench_batch(keys)
 
 
 def _print_group(title: str, results: list[Result]) -> None:
@@ -92,6 +119,15 @@ def _print_group(title: str, results: list[Result]) -> None:
         print(f"  {r.name:<24}{r.op:<8}{r.ops_per_sec:>14,.0f}{speedup:>10}")
 
 
+def _print_batch(results: list[Result]) -> None:
+    print("\nBatch add — amortizing the FFI crossing (zpds Bloom)")
+    print(f"  {'strategy':<24}{'ops/sec':>14}{'speedup':>10}")
+    base = next((r.ops_per_sec for r in results if r.name == "single-item add"), None)
+    for r in results:
+        speedup = f"{r.ops_per_sec / base:>9.1f}x" if base else ""
+        print(f"  {r.name:<24}{r.ops_per_sec:>14,.0f}{speedup:>10}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--n", type=int, default=200_000, help="number of items")
@@ -101,6 +137,7 @@ def main() -> None:
     groups = run(args.n)
     for title, group in zip(("Bloom filter", "HyperLogLog", "Count-Min Sketch"), groups):
         _print_group(title, group)
+    _print_batch(run_batch(args.n))
 
 
 if __name__ == "__main__":

@@ -66,6 +66,15 @@ uint64_t zpds_countmin_width(const zpds_countmin *cm);
 uint64_t zpds_countmin_depth(const zpds_countmin *cm);
 void zpds_countmin_clear(zpds_countmin *cm);
 bool zpds_countmin_merge(zpds_countmin *dst, const zpds_countmin *src);
+
+void zpds_bloom_add_many(zpds_bloom *b, const uint8_t *blob, const size_t *offsets, size_t item_width, size_t n);
+void zpds_bloom_contains_many(const zpds_bloom *b, const uint8_t *blob, const size_t *offsets, size_t item_width, size_t n, uint8_t *out);
+size_t zpds_cuckoo_add_many(zpds_cuckoo *c, const uint8_t *blob, const size_t *offsets, size_t item_width, size_t n, uint8_t *out_ok);
+void zpds_cuckoo_contains_many(zpds_cuckoo *c, const uint8_t *blob, const size_t *offsets, size_t item_width, size_t n, uint8_t *out);
+size_t zpds_cuckoo_remove_many(zpds_cuckoo *c, const uint8_t *blob, const size_t *offsets, size_t item_width, size_t n, uint8_t *out_ok);
+void zpds_hll_add_many(zpds_hll *h, const uint8_t *blob, const size_t *offsets, size_t item_width, size_t n);
+void zpds_countmin_add_many(zpds_countmin *cm, const uint8_t *blob, const size_t *offsets, size_t item_width, size_t n, const uint64_t *counts);
+void zpds_countmin_estimate_many(const zpds_countmin *cm, const uint8_t *blob, const size_t *offsets, size_t item_width, size_t n, uint64_t *out);
 """
 
 

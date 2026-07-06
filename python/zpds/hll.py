@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from ._batch import BatchSizeMixin, for_each_batch
 from ._native import as_bytes, ffi, lib
 
 
-class HyperLogLog:
+class HyperLogLog(BatchSizeMixin):
     """Estimate the number of distinct items in a stream in fixed memory.
 
     ``precision`` (4..18) trades memory for accuracy: memory is ``2**precision``
@@ -19,9 +20,10 @@ class HyperLogLog:
     True
     """
 
-    __slots__ = ("_c",)
+    __slots__ = ("_c", "_batch_size")
 
     def __init__(self, precision: int = 14, seed: int = 0):
+        self.init_batch_size()
         self._c = lib.zpds_hll_new(precision, seed)
         if self._c == ffi.NULL:
             raise MemoryError("failed to allocate HyperLogLog")
@@ -30,10 +32,20 @@ class HyperLogLog:
         data = as_bytes(item)
         lib.zpds_hll_add(self._c, data, len(data))
 
-    def update(self, items) -> None:
-        add = self.add
-        for item in items:
-            add(item)
+    def add_many(self, items) -> None:
+        """Add many items with a single FFI crossing per batch.
+
+        ``items`` may be a numpy array (zero-copy for fixed-width dtypes), a
+        list, or any iterable/generator (consumed in ``batch_size`` chunks).
+        """
+        for_each_batch(
+            items,
+            self._batch_size,
+            lambda b, o, w, n: lib.zpds_hll_add_many(self._c, b, o, w, n),
+        )
+
+    # Back-compat alias for the pre-batch API.
+    update = add_many
 
     def estimate(self) -> float:
         """Raw (floating-point) cardinality estimate."""

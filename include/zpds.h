@@ -106,6 +106,41 @@ void zpds_countmin_clear(zpds_countmin *cm);
  * mismatch, leaving `dst` unchanged. */
 bool zpds_countmin_merge(zpds_countmin *dst, const zpds_countmin *src);
 
+/* --- Batch operations ---------------------------------------------------- */
+/*
+ * Each *_many call amortizes one FFI crossing over `n` items; the per-item loop
+ * runs in native code. Two item layouts are supported, selected by
+ * `item_width`:
+ *   - fixed-width (item_width != 0): item i is blob[i*item_width ..], `offsets`
+ *     ignored (may be NULL). This is the zero-copy path for a contiguous buffer.
+ *   - variable-length (item_width == 0): item i is blob[offsets[i]..offsets[i+1]],
+ *     so `offsets` must have n+1 entries.
+ * Output buffers (`out`, `out_ok`) are caller-allocated and hold n entries.
+ */
+
+void zpds_bloom_add_many(zpds_bloom *b, const uint8_t *blob, const size_t *offsets,
+                         size_t item_width, size_t n);
+void zpds_bloom_contains_many(const zpds_bloom *b, const uint8_t *blob, const size_t *offsets,
+                              size_t item_width, size_t n, uint8_t *out);
+
+/* Returns the number inserted; out_ok (nullable) receives per-item 1/0. */
+size_t zpds_cuckoo_add_many(zpds_cuckoo *c, const uint8_t *blob, const size_t *offsets,
+                            size_t item_width, size_t n, uint8_t *out_ok);
+void zpds_cuckoo_contains_many(zpds_cuckoo *c, const uint8_t *blob, const size_t *offsets,
+                               size_t item_width, size_t n, uint8_t *out);
+/* Returns the number removed; out_ok (nullable) receives per-item 1/0. */
+size_t zpds_cuckoo_remove_many(zpds_cuckoo *c, const uint8_t *blob, const size_t *offsets,
+                               size_t item_width, size_t n, uint8_t *out_ok);
+
+void zpds_hll_add_many(zpds_hll *h, const uint8_t *blob, const size_t *offsets,
+                       size_t item_width, size_t n);
+
+/* `counts` (nullable) gives per-item increments; NULL means +1 each. */
+void zpds_countmin_add_many(zpds_countmin *cm, const uint8_t *blob, const size_t *offsets,
+                            size_t item_width, size_t n, const uint64_t *counts);
+void zpds_countmin_estimate_many(const zpds_countmin *cm, const uint8_t *blob, const size_t *offsets,
+                                 size_t item_width, size_t n, uint64_t *out);
+
 #ifdef __cplusplus
 }
 #endif
