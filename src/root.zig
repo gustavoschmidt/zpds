@@ -6,6 +6,8 @@
 const std = @import("std");
 
 pub const hash = @import("hash.zig");
+pub const bloom = @import("bloom.zig");
+pub const Bloom = bloom.Bloom;
 
 pub const version = struct {
     pub const major: u32 = 0;
