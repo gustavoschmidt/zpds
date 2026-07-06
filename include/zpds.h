@@ -18,6 +18,10 @@ extern "C" {
 /* Library version, packed as (major << 16) | (minor << 8) | patch. */
 uint32_t zpds_version(void);
 
+/* One-shot 64-bit non-cryptographic (wyhash) of `len` bytes at `data` under
+ * `seed`. A NULL/empty buffer (len == 0) hashes the empty string. */
+uint64_t zpds_hash64(const uint8_t *data, size_t len, uint64_t seed);
+
 #ifdef __cplusplus
 }
 #endif
