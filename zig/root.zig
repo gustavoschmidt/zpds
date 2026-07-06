@@ -17,8 +17,8 @@ pub const CountMin = count_min.CountMin;
 
 pub const version = struct {
     pub const major: u32 = 0;
-    pub const minor: u32 = 1;
-    pub const patch: u32 = 0;
+    pub const minor: u32 = 0;
+    pub const patch: u32 = 1;
 };
 
 /// The library version packed as (major << 16) | (minor << 8) | patch.
@@ -31,6 +31,6 @@ comptime {
     _ = @import("ffi.zig");
 }
 
-test "version is 0.1.0" {
-    try std.testing.expectEqual(@as(u32, 0x000100), versionInt());
+test "version is 0.0.1" {
+    try std.testing.expectEqual(@as(u32, 0x000001), versionInt());
 }

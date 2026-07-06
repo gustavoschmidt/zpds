@@ -2,7 +2,7 @@ import zpds
 
 
 def test_native_version():
-    assert zpds.native_version() == (0, 1, 0)
+    assert zpds.native_version() == (0, 0, 1)
 
 
 def test_hash_is_deterministic():
