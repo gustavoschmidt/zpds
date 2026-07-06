@@ -43,6 +43,17 @@ pub const CountMin = struct {
         self.* = undefined;
     }
 
+    /// Return an independent copy of the sketch (its own counter grid).
+    pub fn clone(self: *const CountMin, allocator: std.mem.Allocator) !CountMin {
+        return .{
+            .counters = try allocator.dupe(u64, self.counters),
+            .width = self.width,
+            .depth = self.depth,
+            .total = self.total,
+            .seed = self.seed,
+        };
+    }
+
     pub fn clear(self: *CountMin) void {
         @memset(self.counters, 0);
         self.total = 0;

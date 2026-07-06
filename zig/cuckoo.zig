@@ -67,6 +67,19 @@ pub const CuckooFilter = struct {
         self.* = undefined;
     }
 
+    /// Return an independent copy of the filter (its own slot array). The PRNG
+    /// state is copied too, so subsequent eviction sequences match the original.
+    pub fn clone(self: *const CuckooFilter, allocator: std.mem.Allocator) !CuckooFilter {
+        return .{
+            .slots = try allocator.dupe(u16, self.slots),
+            .num_buckets = self.num_buckets,
+            .bucket_mask = self.bucket_mask,
+            .occupancy = self.occupancy,
+            .seed = self.seed,
+            .prng = self.prng,
+        };
+    }
+
     pub fn clear(self: *CuckooFilter) void {
         @memset(self.slots, 0);
         self.occupancy = 0;

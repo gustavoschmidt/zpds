@@ -18,7 +18,7 @@ def test_duplicates_do_not_inflate():
 @pytest.mark.parametrize("true_n", [100, 1_000, 10_000, 100_000])
 def test_accuracy(true_n):
     hll = HyperLogLog(precision=14, seed=0xC0FFEE)
-    hll.update(f"elem-{i}" for i in range(true_n))
+    hll.add_many(f"elem-{i}" for i in range(true_n))
     rel_err = abs(len(hll) - true_n) / true_n
     assert rel_err < 0.03
 
@@ -33,8 +33,8 @@ def test_relative_error_property():
 def test_merge_union():
     a = HyperLogLog(precision=14, seed=7)
     b = HyperLogLog(precision=14, seed=7)
-    a.update(f"e-{i}" for i in range(50_000))
-    b.update(f"e-{i}" for i in range(25_000, 75_000))
+    a.add_many(f"e-{i}" for i in range(50_000))
+    b.add_many(f"e-{i}" for i in range(25_000, 75_000))
     a.merge(b)
     assert abs(len(a) - 75_000) / 75_000 < 0.03
 

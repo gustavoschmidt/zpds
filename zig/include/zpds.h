@@ -37,6 +37,8 @@ zpds_bloom *zpds_bloom_new(uint64_t expected_items, double fp_rate, uint64_t see
 zpds_bloom *zpds_bloom_new_with_params(uint64_t n_bits, uint32_t k, uint64_t seed);
 
 void zpds_bloom_free(zpds_bloom *b);
+/* Allocate an independent copy of `b`. NULL on allocation failure. */
+zpds_bloom *zpds_bloom_clone(const zpds_bloom *b);
 void zpds_bloom_add(zpds_bloom *b, const uint8_t *data, size_t len);
 bool zpds_bloom_contains(const zpds_bloom *b, const uint8_t *data, size_t len);
 uint64_t zpds_bloom_count(const zpds_bloom *b);   /* number of add() calls */
@@ -54,6 +56,8 @@ typedef struct zpds_hll zpds_hll;
 zpds_hll *zpds_hll_new(uint32_t precision, uint64_t seed);
 
 void zpds_hll_free(zpds_hll *h);
+/* Allocate an independent copy of `h`. NULL on allocation failure. */
+zpds_hll *zpds_hll_clone(const zpds_hll *h);
 void zpds_hll_add(zpds_hll *h, const uint8_t *data, size_t len);
 uint64_t zpds_hll_count(const zpds_hll *h);     /* rounded cardinality estimate */
 double zpds_hll_estimate(const zpds_hll *h);    /* raw cardinality estimate */
@@ -74,6 +78,8 @@ typedef struct zpds_cuckoo zpds_cuckoo;
 zpds_cuckoo *zpds_cuckoo_new(uint64_t capacity, uint64_t seed);
 
 void zpds_cuckoo_free(zpds_cuckoo *c);
+/* Allocate an independent copy of `c`. NULL on allocation failure. */
+zpds_cuckoo *zpds_cuckoo_clone(const zpds_cuckoo *c);
 /* Insert an item. Returns false if the filter is full. */
 bool zpds_cuckoo_add(zpds_cuckoo *c, const uint8_t *data, size_t len);
 bool zpds_cuckoo_contains(zpds_cuckoo *c, const uint8_t *data, size_t len);
@@ -95,6 +101,8 @@ zpds_countmin *zpds_countmin_new(double epsilon, double delta, uint64_t seed);
 zpds_countmin *zpds_countmin_new_with_params(uint64_t width, uint64_t depth, uint64_t seed);
 
 void zpds_countmin_free(zpds_countmin *cm);
+/* Allocate an independent copy of `cm`. NULL on allocation failure. */
+zpds_countmin *zpds_countmin_clone(const zpds_countmin *cm);
 void zpds_countmin_add(zpds_countmin *cm, const uint8_t *data, size_t len, uint64_t count);
 uint64_t zpds_countmin_estimate(const zpds_countmin *cm, const uint8_t *data, size_t len);
 uint64_t zpds_countmin_total(const zpds_countmin *cm);

@@ -19,8 +19,9 @@ from time import perf_counter
 
 # Allow running as a plain script (`python benchmarks/bench.py`) or via importlib.
 _HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(_HERE)
 sys.path.insert(0, _HERE)  # for `import pure_python`
-sys.path.insert(0, os.path.dirname(_HERE))  # python/ dir, for `import zpds`
+sys.path.insert(0, os.path.join(_ROOT, "python"))  # for `import zpds`
 
 import zpds  # noqa: E402
 from pure_python import PyBloomFilter, PyCountMinSketch, PyHyperLogLog  # noqa: E402

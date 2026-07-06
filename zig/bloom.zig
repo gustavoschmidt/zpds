@@ -74,6 +74,17 @@ pub const Bloom = struct {
         self.* = undefined;
     }
 
+    /// Return an independent copy of the filter (its own bit array).
+    pub fn clone(self: *const Bloom, allocator: std.mem.Allocator) !Bloom {
+        return .{
+            .bits = try allocator.dupe(u64, self.bits),
+            .n_bits = self.n_bits,
+            .k = self.k,
+            .inserted = self.inserted,
+            .seed = self.seed,
+        };
+    }
+
     /// Reset the filter to empty without reallocating.
     pub fn clear(self: *Bloom) void {
         @memset(self.bits, 0);

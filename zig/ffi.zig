@@ -76,6 +76,16 @@ export fn zpds_bloom_free(b: ?*Bloom) void {
     }
 }
 
+/// Allocate an independent copy of `b`. Returns null on allocation failure.
+export fn zpds_bloom_clone(b: *const Bloom) ?*Bloom {
+    const nb = gpa.create(Bloom) catch return null;
+    nb.* = b.clone(gpa) catch {
+        gpa.destroy(nb);
+        return null;
+    };
+    return nb;
+}
+
 export fn zpds_bloom_add(b: *Bloom, data: ?[*]const u8, len: usize) void {
     b.add(slice(data, len));
 }
@@ -119,6 +129,16 @@ export fn zpds_hll_free(h: ?*HyperLogLog) void {
         ptr.deinit(gpa);
         gpa.destroy(ptr);
     }
+}
+
+/// Allocate an independent copy of `h`. Returns null on allocation failure.
+export fn zpds_hll_clone(h: *const HyperLogLog) ?*HyperLogLog {
+    const nh = gpa.create(HyperLogLog) catch return null;
+    nh.* = h.clone(gpa) catch {
+        gpa.destroy(nh);
+        return null;
+    };
+    return nh;
 }
 
 export fn zpds_hll_add(h: *HyperLogLog, data: ?[*]const u8, len: usize) void {
@@ -170,6 +190,16 @@ export fn zpds_cuckoo_free(c: ?*CuckooFilter) void {
         ptr.deinit(gpa);
         gpa.destroy(ptr);
     }
+}
+
+/// Allocate an independent copy of `c`. Returns null on allocation failure.
+export fn zpds_cuckoo_clone(c: *const CuckooFilter) ?*CuckooFilter {
+    const nc = gpa.create(CuckooFilter) catch return null;
+    nc.* = c.clone(gpa) catch {
+        gpa.destroy(nc);
+        return null;
+    };
+    return nc;
 }
 
 /// Insert an item. Returns false if the filter is full (insertion failed).
@@ -227,6 +257,16 @@ export fn zpds_countmin_free(cm: ?*CountMin) void {
         ptr.deinit(gpa);
         gpa.destroy(ptr);
     }
+}
+
+/// Allocate an independent copy of `cm`. Returns null on allocation failure.
+export fn zpds_countmin_clone(cm: *const CountMin) ?*CountMin {
+    const ncm = gpa.create(CountMin) catch return null;
+    ncm.* = cm.clone(gpa) catch {
+        gpa.destroy(ncm);
+        return null;
+    };
+    return ncm;
 }
 
 export fn zpds_countmin_add(cm: *CountMin, data: ?[*]const u8, len: usize, count: u64) void {
@@ -441,6 +481,31 @@ test "batch fixed-width layout with per-item counts" {
     try std.testing.expect(out[0] >= 3);
     try std.testing.expect(out[1] >= 5);
     try std.testing.expect(out[2] >= 7);
+}
+
+test "clone produces an independent copy" {
+    const b = zpds_bloom_new(1000, 0.01, 0).?;
+    defer zpds_bloom_free(b);
+    zpds_bloom_add(b, "alpha", 5);
+
+    const b2 = zpds_bloom_clone(b).?;
+    defer zpds_bloom_free(b2);
+    // The copy sees the original's contents...
+    try std.testing.expect(zpds_bloom_contains(b2, "alpha", 5));
+    try std.testing.expectEqual(zpds_bloom_count(b), zpds_bloom_count(b2));
+    // ...but mutating the copy leaves the original untouched.
+    zpds_bloom_add(b2, "beta", 4);
+    try std.testing.expect(zpds_bloom_contains(b2, "beta", 4));
+    try std.testing.expect(!zpds_bloom_contains(b, "beta", 4));
+
+    // Count-Min clone carries counters and total forward.
+    const cm = zpds_countmin_new_with_params(500, 5, 0).?;
+    defer zpds_countmin_free(cm);
+    zpds_countmin_add(cm, "x", 1, 7);
+    const cm2 = zpds_countmin_clone(cm).?;
+    defer zpds_countmin_free(cm2);
+    try std.testing.expectEqual(@as(u64, 7), zpds_countmin_total(cm2));
+    try std.testing.expect(zpds_countmin_estimate(cm2, "x", 1) >= 7);
 }
 
 test "cuckoo batch add/remove report counts" {

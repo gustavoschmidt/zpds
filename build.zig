@@ -9,11 +9,11 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // The core module: all of the Zig source, rooted at src/root.zig. root.zig
-    // force-references src/ffi.zig so the `export fn` C-ABI entry points are
+    // The core module: all of the Zig source, rooted at zig/root.zig. root.zig
+    // force-references zig/ffi.zig so the `export fn` C-ABI entry points are
     // retained in the linked artifacts.
     const core = b.addModule("zpds", .{
-        .root_source_file = b.path("src/root.zig"),
+        .root_source_file = b.path("zig/root.zig"),
         .target = target,
         .optimize = optimize,
     });

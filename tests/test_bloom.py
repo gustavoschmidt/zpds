@@ -19,9 +19,9 @@ def test_accepts_str_and_bytes():
 def test_no_false_negatives():
     bf = BloomFilter(capacity=10_000, error_rate=0.01)
     items = [f"item-{i}" for i in range(10_000)]
-    bf.update(items)
+    bf.add_many(items)
     assert all(x in bf for x in items)
-    assert len(bf) == 10_000
+    assert bf.items_added == 10_000
 
 
 def test_false_positive_rate_tracks_target():
@@ -43,7 +43,7 @@ def test_clear():
     assert "x" in bf
     bf.clear()
     assert "x" not in bf
-    assert len(bf) == 0
+    assert bf.items_added == 0
 
 
 def test_params_and_repr():
@@ -53,8 +53,8 @@ def test_params_and_repr():
     assert "BloomFilter" in repr(bf)
 
 
-def test_from_params():
-    bf = BloomFilter.from_params(n_bits=1024, k=4)
+def test_from_bit_count():
+    bf = BloomFilter.from_bit_count(n_bits=1024, k=4)
     bf.add("x")
     assert "x" in bf
 

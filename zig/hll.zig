@@ -36,6 +36,15 @@ pub const HyperLogLog = struct {
         self.* = undefined;
     }
 
+    /// Return an independent copy of the sketch (its own register array).
+    pub fn clone(self: *const HyperLogLog, allocator: std.mem.Allocator) !HyperLogLog {
+        return .{
+            .registers = try allocator.dupe(u8, self.registers),
+            .precision = self.precision,
+            .seed = self.seed,
+        };
+    }
+
     pub fn clear(self: *HyperLogLog) void {
         @memset(self.registers, 0);
     }

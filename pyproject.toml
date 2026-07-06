@@ -26,15 +26,21 @@ numpy = ["numpy>=1.20"]
 test = ["pytest>=7", "numpy>=1.20"]
 
 [project.urls]
-Homepage = "https://github.com/zpds/zpds"
+Homepage = "https://github.com/gustavoschmidt/zpds"
+Repository = "https://github.com/gustavoschmidt/zpds"
 
 [tool.setuptools]
 # The Python package lives under python/; the native library is compiled by
 # setup.py (BuildWithZig) and bundled next to it as package data.
 packages = ["zpds"]
 package-dir = { zpds = "python/zpds" }
-package-data = { zpds = ["*.so", "*.dylib", "*.dll"] }
+package-data = { zpds = ["*.so", "*.dylib", "*.dll", "py.typed"] }
 include-package-data = true
+
+[tool.pytest.ini_options]
+# Tests live at the repo root; conftest.py puts python/ on sys.path so the
+# package is importable without an editable install.
+testpaths = ["tests"]
 
 # --- cibuildwheel ---------------------------------------------------------
 #

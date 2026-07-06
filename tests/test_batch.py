@@ -20,14 +20,14 @@ def test_bloom_add_many_matches_individual_adds():
     # Same params/seed/inserts -> identical membership over a probe set.
     probe = keys + [f"absent-{i}" for i in range(5000)]
     assert [k in a for k in probe] == [k in b for k in probe]
-    assert len(a) == len(b) == 5000
+    assert a.items_added == b.items_added == 5000
 
 
 def test_bloom_add_many_from_generator_stream():
     bf = BloomFilter(capacity=10_000, seed=2)
-    bf.batch_size = 128  # exercise multi-chunk streaming
-    bf.add_many(f"s-{i}" for i in range(5000))
-    assert len(bf) == 5000
+    # small batch_size exercises multi-chunk streaming
+    bf.add_many((f"s-{i}" for i in range(5000)), batch_size=128)
+    assert bf.items_added == 5000
     assert all(f"s-{i}" in bf for i in range(5000))
 
 
@@ -67,20 +67,20 @@ def test_bloom_numpy_object_array_uses_generic_path():
     assert all(f"o-{i}" in bf for i in range(300))
 
 
-def test_batch_size_validation():
+def test_batch_size_keyword():
     bf = BloomFilter(capacity=100)
-    assert bf.batch_size > 0
-    bf.batch_size = 1
-    assert bf.batch_size == 1
+    # A tiny batch_size still streams the whole iterable correctly.
+    bf.add_many((f"i-{i}" for i in range(50)), batch_size=1)
+    assert bf.items_added == 50
     with pytest.raises(ValueError):
-        bf.batch_size = 0
+        bf.add_many(["a"], batch_size=0)
 
 
 def test_empty_batch_is_noop():
     bf = BloomFilter(capacity=100)
     bf.add_many([])
     bf.add_many(np.empty(0, dtype=np.uint64))
-    assert len(bf) == 0
+    assert bf.items_added == 0
     assert bf.contains_many([]) == []
     assert list(bf.contains_many(np.empty(0, dtype=np.uint64))) == []
 
@@ -143,8 +143,8 @@ def test_cuckoo_numpy():
 # --- Count-Min -------------------------------------------------------------
 
 def test_countmin_add_many_default_counts():
-    a = CountMinSketch(width=1000, depth=5, seed=6)
-    b = CountMinSketch(width=1000, depth=5, seed=6)
+    a = CountMinSketch.from_shape(1000, 5, seed=6)
+    b = CountMinSketch.from_shape(1000, 5, seed=6)
     keys = [f"w-{i}" for i in range(2000)]
     for k in keys:
         a.add(k)
@@ -165,7 +165,7 @@ def test_countmin_add_many_with_counts_list():
 
 
 def test_countmin_counts_length_mismatch():
-    cms = CountMinSketch(width=100, depth=4)
+    cms = CountMinSketch.from_shape(100, 4)
     with pytest.raises(ValueError):
         cms.add_many(["a", "b", "c"], [1, 2])
 
@@ -182,7 +182,7 @@ def test_countmin_numpy_items_and_counts():
 
 
 def test_countmin_estimate_many_list():
-    cms = CountMinSketch(width=1000, depth=5)
+    cms = CountMinSketch.from_shape(1000, 5)
     cms.add("apple", 3)
     cms.add("banana", 5)
     est = cms.estimate_many(["apple", "banana", "cherry"])

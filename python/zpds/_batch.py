@@ -22,10 +22,25 @@ value ``b"abc"``. Add and query using the same representation.
 from __future__ import annotations
 
 from itertools import islice
+from typing import TYPE_CHECKING, Iterable, List, Union
 
-from ._native import as_bytes, ffi, lib
+from ._native import as_bytes, ffi
 
 DEFAULT_BATCH_SIZE = 8192
+
+if TYPE_CHECKING:
+    import numpy as np
+
+    # A single hashable key.
+    Item = Union[str, bytes, bytearray, memoryview]
+    # A batch of keys: any iterable of items, or a fixed-width numpy array
+    # (taken zero-copy on the fast path).
+    Items = Union[Iterable[Item], "np.ndarray"]
+    # A per-item result batch: a numpy array for numpy input, else a plain list.
+    BoolResults = Union[List[bool], "np.ndarray"]
+    IntResults = Union[List[int], "np.ndarray"]
+else:  # pragma: no cover - the aliases only matter to type checkers.
+    Item = Items = BoolResults = IntResults = object
 
 # numpy dtype kinds whose raw bytes we can hash directly (fixed-width, every
 # byte meaningful). 'U' (4-byte unicode) and 'O' (object) go the generic route.
@@ -89,15 +104,22 @@ def pack_chunk(items):
 
 def for_each_batch(items, batch_size, fn):
     """Invoke ``fn(blob, offsets, item_width, n)`` once for a numpy fast view,
-    or once per packed chunk of a generic iterable."""
+    or once per packed chunk of a generic iterable.
+
+    Returns the sum of ``fn``'s return values (treating ``None`` as ``0``), so
+    callers whose native op reports a per-batch count — e.g. cuckoo inserts —
+    get the running total for free, while add-style ops that return ``None``
+    simply get ``0``.
+    """
+    total = 0
     view = numpy_fast_view(items)
     if view is not None:
         buf, width, n = view
-        fn(buf, ffi.NULL, width, n)
-        return
+        return (fn(buf, ffi.NULL, width, n) or 0)
     for chunk in iter_chunks(items, batch_size):
         blob, offsets, n = pack_chunk(chunk)
-        fn(blob, offsets, 0, n)
+        total += fn(blob, offsets, 0, n) or 0
+    return total
 
 
 def _to_results(out, n, ctype, as_numpy):
@@ -133,28 +155,8 @@ def query_batches(items, batch_size, ctype, fn):
     return results
 
 
-class BatchSizeMixin:
-    """Adds a configurable ``batch_size`` used when chunking generic iterables.
-
-    Concrete classes must include ``"_batch_size"`` in their ``__slots__`` and
-    initialize it (see ``BatchSizeMixin.init_batch_size``).
-    """
-
-    __slots__ = ()
-
-    def init_batch_size(self):
-        self._batch_size = DEFAULT_BATCH_SIZE
-
-    @property
-    def batch_size(self) -> int:
-        """Number of items packed per FFI crossing for generic iterables.
-
-        Ignored on the numpy fast path, where the whole array crosses at once.
-        """
-        return self._batch_size
-
-    @batch_size.setter
-    def batch_size(self, value: int) -> None:
-        if value <= 0:
-            raise ValueError("batch_size must be positive")
-        self._batch_size = int(value)
+def check_batch_size(batch_size: int) -> int:
+    """Validate a per-call ``batch_size`` (only used for generic iterables)."""
+    if batch_size <= 0:
+        raise ValueError("batch_size must be positive")
+    return batch_size

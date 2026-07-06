@@ -1,6 +1,0 @@
-# Dev-only config for running the test suite from this directory.
-# The authoritative packaging metadata lives in the repository-root
-# pyproject.toml (which also drives wheel builds via setup.py + cibuildwheel).
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]

@@ -42,7 +42,7 @@ def test_error_bound():
 
 
 def test_explicit_params():
-    cms = CountMinSketch(width=500, depth=5)
+    cms = CountMinSketch.from_shape(500, 5)
     assert cms.width == 500
     assert cms.depth == 5
 
@@ -54,8 +54,8 @@ def test_sizing_from_epsilon_delta():
 
 
 def test_merge():
-    a = CountMinSketch(width=500, depth=5, seed=99)
-    b = CountMinSketch(width=500, depth=5, seed=99)
+    a = CountMinSketch.from_shape(500, 5, seed=99)
+    b = CountMinSketch.from_shape(500, 5, seed=99)
     a.add("x", 10)
     b.add("x", 32)
     b.add("y", 5)
@@ -66,14 +66,14 @@ def test_merge():
 
 
 def test_merge_mismatch():
-    a = CountMinSketch(width=500, depth=5, seed=1)
-    b = CountMinSketch(width=500, depth=5, seed=2)
+    a = CountMinSketch.from_shape(500, 5, seed=1)
+    b = CountMinSketch.from_shape(500, 5, seed=2)
     with pytest.raises(ValueError):
         a.merge(b)
 
 
 def test_invalid_args():
     with pytest.raises(ValueError):
-        CountMinSketch(width=10)  # depth missing
+        CountMinSketch.from_shape(10, 0)  # non-positive depth
     with pytest.raises(ValueError):
         CountMinSketch(epsilon=2.0)
