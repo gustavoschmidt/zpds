@@ -8,6 +8,8 @@ const root = @import("root.zig");
 const hash = root.hash;
 const Bloom = root.Bloom;
 const HyperLogLog = root.HyperLogLog;
+const CuckooFilter = root.CuckooFilter;
+const CountMin = root.CountMin;
 
 /// Allocator backing every heap object handed across the C ABI. `page_allocator`
 /// is stateless and libc-free, keeping the shared library self-contained.
@@ -131,6 +133,114 @@ export fn zpds_hll_clear(h: *HyperLogLog) void {
 /// Merge `src` into `dst` (register-wise max). Returns false on precision
 /// mismatch, leaving `dst` unchanged.
 export fn zpds_hll_merge(dst: *HyperLogLog, src: *const HyperLogLog) bool {
+    dst.merge(src) catch return false;
+    return true;
+}
+
+// --- Cuckoo filter ----------------------------------------------------------
+
+/// Allocate a cuckoo filter that can hold roughly `capacity` items. Returns
+/// null on allocation failure.
+export fn zpds_cuckoo_new(capacity: u64, seed: u64) ?*CuckooFilter {
+    const c = gpa.create(CuckooFilter) catch return null;
+    c.* = CuckooFilter.init(gpa, capacity, seed) catch {
+        gpa.destroy(c);
+        return null;
+    };
+    return c;
+}
+
+export fn zpds_cuckoo_free(c: ?*CuckooFilter) void {
+    if (c) |ptr| {
+        ptr.deinit(gpa);
+        gpa.destroy(ptr);
+    }
+}
+
+/// Insert an item. Returns false if the filter is full (insertion failed).
+export fn zpds_cuckoo_add(c: *CuckooFilter, data: ?[*]const u8, len: usize) bool {
+    c.add(slice(data, len)) catch return false;
+    return true;
+}
+
+export fn zpds_cuckoo_contains(c: *CuckooFilter, data: ?[*]const u8, len: usize) bool {
+    return c.contains(slice(data, len));
+}
+
+/// Remove one occurrence of an item. Returns true if a match was removed.
+export fn zpds_cuckoo_remove(c: *CuckooFilter, data: ?[*]const u8, len: usize) bool {
+    return c.remove(slice(data, len));
+}
+
+export fn zpds_cuckoo_count(c: *const CuckooFilter) u64 {
+    return c.len();
+}
+
+export fn zpds_cuckoo_capacity(c: *const CuckooFilter) u64 {
+    return c.capacity();
+}
+
+export fn zpds_cuckoo_clear(c: *CuckooFilter) void {
+    c.clear();
+}
+
+// --- Count-Min Sketch -------------------------------------------------------
+
+/// Allocate a sketch sized for additive error `epsilon * total` with failure
+/// probability `delta`. Returns null on allocation failure.
+export fn zpds_countmin_new(epsilon: f64, delta: f64, seed: u64) ?*CountMin {
+    const cm = gpa.create(CountMin) catch return null;
+    cm.* = CountMin.init(gpa, epsilon, delta, seed) catch {
+        gpa.destroy(cm);
+        return null;
+    };
+    return cm;
+}
+
+/// Allocate a sketch with explicit `width` and `depth`.
+export fn zpds_countmin_new_with_params(width: u64, depth: u64, seed: u64) ?*CountMin {
+    const cm = gpa.create(CountMin) catch return null;
+    cm.* = CountMin.initWithParams(gpa, width, depth, seed) catch {
+        gpa.destroy(cm);
+        return null;
+    };
+    return cm;
+}
+
+export fn zpds_countmin_free(cm: ?*CountMin) void {
+    if (cm) |ptr| {
+        ptr.deinit(gpa);
+        gpa.destroy(ptr);
+    }
+}
+
+export fn zpds_countmin_add(cm: *CountMin, data: ?[*]const u8, len: usize, count: u64) void {
+    cm.add(slice(data, len), count);
+}
+
+export fn zpds_countmin_estimate(cm: *const CountMin, data: ?[*]const u8, len: usize) u64 {
+    return cm.estimate(slice(data, len));
+}
+
+export fn zpds_countmin_total(cm: *const CountMin) u64 {
+    return cm.totalCount();
+}
+
+export fn zpds_countmin_width(cm: *const CountMin) u64 {
+    return cm.width;
+}
+
+export fn zpds_countmin_depth(cm: *const CountMin) u64 {
+    return cm.depth;
+}
+
+export fn zpds_countmin_clear(cm: *CountMin) void {
+    cm.clear();
+}
+
+/// Merge `src` into `dst` (counter-wise sum). Returns false if the sketches
+/// differ in width, depth or seed, leaving `dst` unchanged.
+export fn zpds_countmin_merge(dst: *CountMin, src: *const CountMin) bool {
     dst.merge(src) catch return false;
     return true;
 }

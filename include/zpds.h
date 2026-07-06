@@ -65,6 +65,47 @@ void zpds_hll_clear(zpds_hll *h);
  * mismatch, leaving `dst` unchanged. */
 bool zpds_hll_merge(zpds_hll *dst, const zpds_hll *src);
 
+/* --- Cuckoo filter ------------------------------------------------------- */
+
+typedef struct zpds_cuckoo zpds_cuckoo;
+
+/* Allocate a cuckoo filter that can hold roughly `capacity` items. Free with
+ * zpds_cuckoo_free. */
+zpds_cuckoo *zpds_cuckoo_new(uint64_t capacity, uint64_t seed);
+
+void zpds_cuckoo_free(zpds_cuckoo *c);
+/* Insert an item. Returns false if the filter is full. */
+bool zpds_cuckoo_add(zpds_cuckoo *c, const uint8_t *data, size_t len);
+bool zpds_cuckoo_contains(zpds_cuckoo *c, const uint8_t *data, size_t len);
+/* Remove one occurrence. Returns true if a match was removed. */
+bool zpds_cuckoo_remove(zpds_cuckoo *c, const uint8_t *data, size_t len);
+uint64_t zpds_cuckoo_count(const zpds_cuckoo *c);     /* live fingerprints */
+uint64_t zpds_cuckoo_capacity(const zpds_cuckoo *c);  /* total slot capacity */
+void zpds_cuckoo_clear(zpds_cuckoo *c);
+
+/* --- Count-Min Sketch ---------------------------------------------------- */
+
+typedef struct zpds_countmin zpds_countmin;
+
+/* Allocate a sketch sized for additive error `epsilon * total` with failure
+ * probability `delta`. Free with zpds_countmin_free. */
+zpds_countmin *zpds_countmin_new(double epsilon, double delta, uint64_t seed);
+
+/* Allocate a sketch with explicit width and depth. */
+zpds_countmin *zpds_countmin_new_with_params(uint64_t width, uint64_t depth, uint64_t seed);
+
+void zpds_countmin_free(zpds_countmin *cm);
+void zpds_countmin_add(zpds_countmin *cm, const uint8_t *data, size_t len, uint64_t count);
+uint64_t zpds_countmin_estimate(const zpds_countmin *cm, const uint8_t *data, size_t len);
+uint64_t zpds_countmin_total(const zpds_countmin *cm);
+uint64_t zpds_countmin_width(const zpds_countmin *cm);
+uint64_t zpds_countmin_depth(const zpds_countmin *cm);
+void zpds_countmin_clear(zpds_countmin *cm);
+
+/* Merge `src` into `dst` (counter-wise sum). Returns false on width/depth/seed
+ * mismatch, leaving `dst` unchanged. */
+bool zpds_countmin_merge(zpds_countmin *dst, const zpds_countmin *src);
+
 #ifdef __cplusplus
 }
 #endif

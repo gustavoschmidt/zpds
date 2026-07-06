@@ -10,6 +10,10 @@ pub const bloom = @import("bloom.zig");
 pub const Bloom = bloom.Bloom;
 pub const hll = @import("hll.zig");
 pub const HyperLogLog = hll.HyperLogLog;
+pub const cuckoo = @import("cuckoo.zig");
+pub const CuckooFilter = cuckoo.CuckooFilter;
+pub const count_min = @import("count_min.zig");
+pub const CountMin = count_min.CountMin;
 
 pub const version = struct {
     pub const major: u32 = 0;
