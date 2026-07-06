@@ -44,6 +44,27 @@ uint64_t zpds_bloom_bits(const zpds_bloom *b);    /* bit count m */
 uint32_t zpds_bloom_k(const zpds_bloom *b);       /* hash-function count k */
 void zpds_bloom_clear(zpds_bloom *b);
 
+/* --- HyperLogLog --------------------------------------------------------- */
+
+typedef struct zpds_hll zpds_hll;
+
+/* Allocate a HyperLogLog with `precision` register-index bits (clamped to
+ * [4, 18]; higher precision -> more memory, less error). Free with
+ * zpds_hll_free. */
+zpds_hll *zpds_hll_new(uint32_t precision, uint64_t seed);
+
+void zpds_hll_free(zpds_hll *h);
+void zpds_hll_add(zpds_hll *h, const uint8_t *data, size_t len);
+uint64_t zpds_hll_count(const zpds_hll *h);     /* rounded cardinality estimate */
+double zpds_hll_estimate(const zpds_hll *h);    /* raw cardinality estimate */
+uint64_t zpds_hll_size(const zpds_hll *h);      /* register count m = 2^precision */
+double zpds_hll_error(const zpds_hll *h);       /* expected relative error */
+void zpds_hll_clear(zpds_hll *h);
+
+/* Merge `src` into `dst` (register-wise max). Returns false on precision
+ * mismatch, leaving `dst` unchanged. */
+bool zpds_hll_merge(zpds_hll *dst, const zpds_hll *src);
+
 #ifdef __cplusplus
 }
 #endif

@@ -7,6 +7,7 @@ const std = @import("std");
 const root = @import("root.zig");
 const hash = root.hash;
 const Bloom = root.Bloom;
+const HyperLogLog = root.HyperLogLog;
 
 /// Allocator backing every heap object handed across the C ABI. `page_allocator`
 /// is stateless and libc-free, keeping the shared library self-contained.
@@ -80,4 +81,56 @@ export fn zpds_bloom_k(b: *const Bloom) u32 {
 
 export fn zpds_bloom_clear(b: *Bloom) void {
     b.clear();
+}
+
+// --- HyperLogLog ------------------------------------------------------------
+
+/// Allocate a HyperLogLog with `precision` register-index bits (clamped to
+/// [4, 18]). Returns null on allocation failure.
+export fn zpds_hll_new(precision: u32, seed: u64) ?*HyperLogLog {
+    const p: u5 = @intCast(std.math.clamp(precision, 4, 18));
+    const h = gpa.create(HyperLogLog) catch return null;
+    h.* = HyperLogLog.init(gpa, p, seed) catch {
+        gpa.destroy(h);
+        return null;
+    };
+    return h;
+}
+
+export fn zpds_hll_free(h: ?*HyperLogLog) void {
+    if (h) |ptr| {
+        ptr.deinit(gpa);
+        gpa.destroy(ptr);
+    }
+}
+
+export fn zpds_hll_add(h: *HyperLogLog, data: ?[*]const u8, len: usize) void {
+    h.add(slice(data, len));
+}
+
+export fn zpds_hll_count(h: *const HyperLogLog) u64 {
+    return h.count();
+}
+
+export fn zpds_hll_estimate(h: *const HyperLogLog) f64 {
+    return h.estimate();
+}
+
+export fn zpds_hll_size(h: *const HyperLogLog) u64 {
+    return h.size();
+}
+
+export fn zpds_hll_error(h: *const HyperLogLog) f64 {
+    return h.relativeError();
+}
+
+export fn zpds_hll_clear(h: *HyperLogLog) void {
+    h.clear();
+}
+
+/// Merge `src` into `dst` (register-wise max). Returns false on precision
+/// mismatch, leaving `dst` unchanged.
+export fn zpds_hll_merge(dst: *HyperLogLog, src: *const HyperLogLog) bool {
+    dst.merge(src) catch return false;
+    return true;
 }
